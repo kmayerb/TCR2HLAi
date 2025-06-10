@@ -1,0 +1,5 @@
+pandas
+numpy
+scipy
+scikit-learn
+# Standard library: os, sys, io, itertools, time, copy, zipfile, subprocess, argparse
