@@ -1,0 +1,13 @@
+[project]
+name = "tcr2hlai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "marimo>=0.13.15",
+    "numpy>=2.3.0",
+    "pandas>=2.3.0",
+    "scikit-learn>=1.7.0",
+    "scipy>=1.15.3",
+]
