@@ -8,28 +8,30 @@ from functions import read_zip_to_dataframes, tab, tab1, HLApredict
 
 DEFAULT_ZIP_URL = "https://www.dropbox.com/scl/fi/k1pz9m4jtl0gg0yc8nyg8/sampleExport.2024-02-29_20-38-59.zip?rlkey=z2ebf4c963rez4l46rvmlaw7d&st=yf24ehko&dl=1"
 
+
 def maybe_download_zip(zip_path, url):
     if not os.path.exists(zip_path):
         print(f"Downloading {zip_path} from {url} ...")
         subprocess.run(["wget", "-O", zip_path, url], check=True)
         print("Download complete.")
 
+
 def main():
     parser = argparse.ArgumentParser(description="Run HLApredict pipeline on a .zip file of repertoires.")
-    parser.add_argument('--zip_path', type=str, default='data/towlerton.zip',
-                        help='Path to input zip file (default: data/towlerton.zip)')
+    parser.add_argument('--zip_path', type=str, default='public/towlerton.zip',
+                        help='Path to input zip file (default: public/towlerton.zip)')
     parser.add_argument('--download', action='store_true',
                         help='Download the default towlerton.zip zip file if not present in data folder')
     parser.add_argument('--zip_url', type=str, default=DEFAULT_ZIP_URL,
                         help=f'URL to download zip file (default: {DEFAULT_ZIP_URL})')
-    parser.add_argument('--model_folder', type=str, default='data/XSTUDY_ALL_FEATURE_L1_v4e',
-                        help='Path to model folder (default: data/XSTUDY_ALL_FEATURE_L1_v4e)')
+    parser.add_argument('--model_folder', type=str, default='public/XSTUDY_ALL_FEATURE_L1_v4e',
+                        help='Path to model folder (default: public/XSTUDY_ALL_FEATURE_L1_v4e)')
     parser.add_argument('--model_name', type=str, default='XSTUDY_ALL_FEATURE_L1_v4e',
                         help='Model name (default: XSTUDY_ALL_FEATURE_L1_v4e)')
     parser.add_argument('--model_calibration', type=str, default='XSTUDY_ALL_FEATURE_L1_v4e_HS2',
                         help='Model calibration name (default: XSTUDY_ALL_FEATURE_L1_v4e_HS2)')
-    parser.add_argument('--truth_file', type=str, default='data/XSTUDY_ALL_FEATURE_L1_v4e/sample_hla_x_towlerton.csv',
-                        help='Path to truth file (default: data/XSTUDY_ALL_FEATURE_L1_v4e/sample_hla_x_towlerton.csv)')
+    parser.add_argument('--truth_file', type=str, default='public/XSTUDY_ALL_FEATURE_L1_v4e/sample_hla_x_towlerton.csv',
+                        help='Path to truth file (default: public/XSTUDY_ALL_FEATURE_L1_v4e/sample_hla_x_towlerton.csv)')
     parser.add_argument('--output_folder', type=str, default='outputs',
                         help='Folder to write outputs (default: outputs)')
     parser.add_argument('--n', type=int, default=5,
@@ -113,6 +115,7 @@ def main():
 
     end_time = time.time()
     print(f"HLApredict pipeline completed in {end_time - start_time:.2f} seconds.")
+
 
 if __name__ == "__main__":
     main()
