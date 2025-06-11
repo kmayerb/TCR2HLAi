@@ -44,7 +44,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def define_functions():
+def define_functions(mo):
     # Dependencies - Functions
     import io
     import os
@@ -99,7 +99,7 @@ def define_functions():
         dfx['templates'] = dfx[templates_col]
         return dfx[['vfamcdr3', 'templates']]
 
-    
+
     def read_zip_to_dataframes(zip_uploaded, 
                                v_col,
                                cdr3_col, 
@@ -136,7 +136,11 @@ def define_functions():
         dataframes = dict()
         cnt = 0
         with zipfile.ZipFile(io.BytesIO(zip_uploaded.contents), 'r') as z:
-            for filename in z.namelist():
+            for filename in mo.status.progress_bar(
+                z.namelist(),
+                title="Parsing Input Files",
+                remove_on_exit=True
+            ):
                 if filename.endswith('.tsv') or filename.endswith('.csv'):
                     cnt = cnt + 1
                     print(filename)
@@ -179,7 +183,7 @@ def define_functions():
         #dx = pd.read_csv(fp, sep = sep)
         if min_value is not None:
             dx = dx[dx[get_col] > min_value].reset_index(drop = True)
-    
+
         dxt = dx.groupby(on).sum().reset_index(drop = False)
         #print(dxt.head())
         #print(query.head())
@@ -221,19 +225,19 @@ def define_functions():
         if min_value is not None:
             dx = dx[dx[get_col] > min_value].reset_index(drop = True)
         dxt = dx.groupby(on).sum().reset_index(drop = False)
-    
+
         # enforcement uses a simplyrick to avoid different V exact CDR by converting V02CAS to V02V02CAS
         if enforcement:
             query1[on] = query1[on].str[0:3] + query1[on] # (We add extract V03)
             dxt[on] = dxt[on].str[0:3] + dxt[on]
-    
+
         dq = get_multimer_dictionary(random_strings = query1[on], 
         trim_left = None, trim_right = None)
 
         ds = get_multimer_dictionary(random_strings = dxt[on], 
             trim_left = None, trim_right = None, 
             conserve_memory = False)
-    
+
         csr_mat1 = get_query_v_subject_npz_dok(
             dq=dq, 
             ds=ds, 
@@ -318,19 +322,19 @@ def define_functions():
                          'STU.': [2]}
         >>> assert result == expected
         """
-   
+
         # OPTIONAL TRIMMING
         if trim_left is None and trim_right is not None: 
             if trim_right > 0:
                 trim_right = -1*trim_right
-    
+
             if verbose: print(f"Right trimming input sequences by {trim_right} only.")
             random_strings = [x[:trim_right] for x in random_strings]
-    
+
         elif trim_right is None and trim_left is not None:
             if verbose: print(f"Left trimming input sequences by {trim_left} only.")
             random_strings = [x[:trim_right] for x in random_strings]
-    
+
         elif trim_left is None and trim_right is None:
             if verbose: print("No trimming of input sequences performed.")
             pass
@@ -404,7 +408,7 @@ def define_functions():
 
         def copy(self):
             return copy.deepcopy(self)
-  
+
         def load_fit(self, model_folder, model_name, use_npz = True):
             if use_npz:
                 df = load_weights_from_npz(
@@ -416,11 +420,11 @@ def define_functions():
             else:
                 self.coefficients   = pd.read_csv(os.path.join(model_folder, f'{model_name}.weights.csv')   , index_col = 0)
                 self.intercepts     = pd.read_csv(os.path.join(model_folder, f'{model_name}.intercepts.csv'), index_col = 0)
-    
+
         def load_data(self, model_folder, model_name):
             self.X = pd.read_csv(os.path.join(model_folder, f'{model_name}.training_data.csv'), index_col = 0)
             self.Y = pd.read_csv(os.path.join(model_folder, f'{model_name}.observations.csv'), index_col = 0)
-    
+
         def load_calibrations(self, model_folder, model_name):
             self.calibrations = pd.read_csv(os.path.join(model_folder, f'{model_name}.calibrations.csv'), index_col = 0)#.to_dict()
 
@@ -441,9 +445,9 @@ def define_functions():
             z = np.dot(X,W)
 
             decision_scores = pd.DataFrame(z, columns = binary_variables)
-        
+
             decision_scores.index = X.index
-        
+
             self.decision_scores = decision_scores
 
             return decision_scores 
@@ -506,7 +510,7 @@ def define_functions():
                     d['binary'] = binary
                     store.append(d)
             return pd.concat(store).reset_index(drop = True)
-    
+
         def pxx(self, decision_scores, variables=None, covariates=None):
             calibrated_pred = {}
             if variables is None:
@@ -551,7 +555,7 @@ def define_functions():
 
             # Create a DataFrame from the results
             calibrated_prob = pd.DataFrame(calibrated_pred, index = decision_scores.index)
-        
+
             self.calibrated_prob = calibrated_prob
             return calibrated_prob
 
@@ -598,7 +602,6 @@ def _(cnames_ui, mo, read_zip_to_dataframes, zip_upload):
 
     dfs = read_zip_to_dataframes(
         zip_upload.value[0],
-        n=3,
         **cnames_ui.value,
     )
     return (dfs,)
@@ -622,17 +625,17 @@ def _(model_folder, model_name, os, pd):
 
 
 @app.cell
-def tabulate_features(Q, Q0, Q1, dfs, np, pd, tab, tab1):
+def tabulate_features(Q, Q0, Q1, dfs, mo, np, pd, tab, tab1):
     results0 = []
     results1 = []
 
-    for fp, df in dfs.items():
+    for fp, df in mo.status.progress_bar(dfs.items(), title="Tabulating Exact Matches", remove_on_exit=True):
         print(f">>>> Tabulating exact features in : {fp}")
         result = tab(dx=df, fp=fp, query=Q0, get_col="templates", on="vfamcdr3")
         results0.append(result)
     X0 = pd.concat(results0, axis=1)
 
-    for fp, df in dfs.items():
+    for fp, df in mo.status.progress_bar(dfs.items(), title="Tabulating Inexact Matches", remove_on_exit=True):
         print(f">>>> Tabulating inexact matches around anchors in : {fp}")
         result = tab1(dx=df, fp=fp, query=Q1, get_col="templates", on="vfamcdr3")
         results1.append(result)
