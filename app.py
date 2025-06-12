@@ -17,6 +17,8 @@ def _(mo):
     ## TCR2HLAi
 
     Awesome app -- learn all about it here...
+
+    ### Input Files:
     """
     )
     return
@@ -673,7 +675,7 @@ def load_model(
     h.load_calibrations(model_folder=model_folder, model_name=calibration_name)
     h.predict_decisions_x(Xt)
     h.pxx(decision_scores=h.decision_scores, variables=None, covariates=I[['log10unique', 'log10unique2']])
-
+    print("done")
     return (h,)
 
 
@@ -686,7 +688,11 @@ def _(fp, h, io, pd, truth_file):
     if len(truth_file.value) > 0:
         truth = pd.read_csv(io.BytesIO(truth_file.value[0].contents), index_col=0)
         predictions = h.output_probs_and_obs(probs=h.calibrated_prob, observations=truth.loc[h.calibrated_prob.index])
-        predictions['pred'] = predictions['p'] > 0.5
+        # Write the group for each prediction
+        predictions = predictions.assign(
+            pred=predictions['p'] > 0.5,
+            group=predictions['binary'].apply(lambda s: s.split("_")[0])
+        )
         print(f">>>> Scoring Predictions <<<<<{fp}")
         performance = h.score_predictions(probs=h.calibrated_prob, observations=truth.loc[h.calibrated_prob.index].astype('float64'))
         performance = performance.rename(columns={'i': 'binary'})
@@ -702,6 +708,10 @@ def _(fp, h, io, pd, truth_file):
         output_csvs["calibrated_probabilities"] = h.calibrated_prob #.to_csv(index=True)
         predictions = h.output_probs_and_obs(probs=h.calibrated_prob, observations=(h.calibrated_prob > 0.5).astype('float64'))
         predictions = predictions.rename(columns={'obs': 'pred'})  # no observations
+        # Write the group for each prediction
+        predictions = predictions.assign(
+            group=predictions['binary'].apply(lambda s: s.split("_")[0])
+        )
         output_csvs["predictions"] = predictions #.to_csv(index=True)
 
     return (output_csvs,)
@@ -709,10 +719,76 @@ def _(fp, h, io, pd, truth_file):
 
 @app.cell
 def _(mo, output_csvs):
+    # Let the user select some plotting options
+    plot_predictions_args = mo.md("""
+    ### Plot Predictions
+
+    - {groups}
+    """).batch(
+        groups=mo.ui.multiselect(
+            label="Groups:",
+            options=output_csvs["predictions"]["group"].unique(),
+            value=output_csvs["predictions"]["group"].unique()
+        )
+    )
+    plot_predictions_args
+    return (plot_predictions_args,)
+
+
+@app.cell
+def _():
+    from plotly.subplots import make_subplots
+    return (make_subplots,)
+
+
+@app.cell
+def _(make_subplots, output_csvs, plot_predictions_args):
+    def plot_predictions(df, groups: list):
+        if len(groups) == 0:
+            return
+
+        fig = make_subplots(
+            rows=1,
+            cols=len(groups),
+            shared_yaxes=True,
+            subplot_titles=groups
+        )
+        for col, group in enumerate(groups):
+            group_df = df.loc[
+                    df["group"] == group
+                ].pivot(
+                    index="sample_id",
+                    columns="binary",
+                    values="p"
+                )
+            fig.add_heatmap(
+                z=group_df,
+                x=group_df.columns.tolist(),
+                y=group_df.index.tolist(),
+                coloraxis="coloraxis",
+                row=1,
+                col=col+1,
+            )
+        fig.update_layout(
+            coloraxis=dict(
+                colorbar=dict(title="prob")
+            )
+        )
+        return fig
+
+    plot_predictions(output_csvs["predictions"], **plot_predictions_args.value)
+    return
+
+
+@app.cell
+def _(mo, output_csvs):
+    # Give people the full data files
     mo.vstack([
-        it
-        for name, df in output_csvs.items()
-        for it in [name, df]
+        mo.md("### Output Files"),
+        mo.accordion({
+            name.title().replace("_", " "): df
+            for name, df in output_csvs.items()    
+        })
     ])
     return
 
