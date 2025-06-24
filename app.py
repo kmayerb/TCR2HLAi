@@ -13,12 +13,98 @@ def _():
 @app.cell
 def _(mo):
     mo.md(
-        """
-    ## TCR2HLAi
+    """
+    ## TCR2HLA 
 
-    Awesome app -- learn all about it here...
+    ![My Figure](public/XSTUDY_ALL_FEATURE_L1_v4e/20250217_Figure_1_ALT_editable_labels.png)
 
-    ### Input Files:
+    **TCR2HLA** estimates calibrated HLA genotype probabilites from TCRbeta repertoires. 
+
+    ### Demonstration
+
+    To get started, download the [towlerton25.zip](https://www.dropbox.com/scl/fi/72jnhawjj0rd2nuvxk7h8/towlerton25.zip?rlkey=enqpzs32wjzuvp0a5rlox3daq&st=0ehfrfbw&dl=1) 
+    file, which contains 25 raw TCRb repertoires from [Towlerton et al. 2022](https://www.frontiersin.org/journals/immunology/articles/10.3389/fimmu.2022.879190/full).
+    The file size of the full dataset [towlerton.zip](https://www.dropbox.com/scl/fi/6xp0kkiszphdfrhknw4o4/towlerton.zip?rlkey=1pxyce206624drcx42x9hb12a&st=yzfzo38h&dl=1)
+    is too large to be uploaded tothe reactive Python webserver; however, a condensed format with only required columns [towlerton_mini.zip](https://www.dropbox.com/scl/fi/eav6uuq5mkhdwehesxm3q/towlerton_mini.zip?rlkey=q01gnpycgyrbxqcjmc9yjpegq&st=evggjjte&dl=1)
+    permits upload of all 192 repertoires with an expected run time of 10 minutes. For faster performance, use the commandline tool that makes use of multiple cpus.
+
+    """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    cnames_ui = mo.md("""
+    ### Repertoire Data Format
+                          
+    Specify relevant columns based on repertoire data format.
+
+    - {v_col}
+    - {cdr3_col}
+    - {templates_col}
+            
+    """).batch(
+        v_col=mo.ui.text(
+            label="**TRBV gene name column** (v_col e.g., vMaxResolved, vGene, vb):",
+            value="vMaxResolved"
+        ),
+        cdr3_col=mo.ui.text(
+            label="**CDR3(AA) colum** (cdr3_col, e.g., aminoAcid, cdr3b, amino_acid):",
+            value="aminoAcid"
+        ),
+        templates_col=mo.ui.text(
+            label="**Templates column** (templates_col, e.g., count (templates/reads), templates):",
+            value="count (templates/reads)"
+        )    
+    )
+    cnames_ui
+    return (cnames_ui,)
+
+
+@app.cell
+def model_config_ui(mo):
+    mnames_ui = mo.md("""
+
+    ### Model Configuration
+    
+    Select model and calibration.    
+
+    - {model_name}
+    - {calibration_name}  
+                                   
+    """).batch(
+        model_name=mo.ui.dropdown(
+            label="Model name",
+            options=["XSTUDY_ALL_FEATURE_L1_v4e"],
+            value="XSTUDY_ALL_FEATURE_L1_v4e"
+        ),
+        calibration_name=mo.ui.dropdown(
+            label="Calibration name",
+            options=["XSTUDY_ALL_FEATURE_L1_v4e_HS2"],
+            value="XSTUDY_ALL_FEATURE_L1_v4e_HS2"
+        )        
+    )
+    mnames_ui
+    return (mnames_ui,)
+
+@app.cell
+def model_params(mnames_ui, mo):
+    model_name = mnames_ui.value['model_name']
+    #model_name = "XSTUDY_ALL_FEATURE_L1_v4e"
+    calibration_name = mnames_ui.value['calibration_name']
+    #calibration_name = "XSTUDY_ALL_FEATURE_L1_v4e_HS2"
+    model_folder = str(mo.notebook_location() / "public" / model_name)  
+    return calibration_name, model_folder, model_name
+
+
+@app.cell
+def _(mo):
+    mo.md(
+    """
+    ### Input Repertoires
+
+    **Drag and drop a set of TCRb repertoires as a .zip file below to start the HLA prediction pipeline**. 
     """
     )
     return
@@ -28,17 +114,30 @@ def _(mo):
 def upload_file(mo):
     # First step is for the user to upload a zip file
     zip_upload = mo.ui.file(
-        label="Upload ZIP File",
+        label="Upload .zip file containing reperotires",
         kind="area"
     )
     zip_upload
     return (zip_upload,)
 
+@app.cell
+def _(mo):
+    mo.md(
+    """
+    #### Optional: Truth Values
+    
+    For previously genotyped samples, a .csv file with genotype truth values can included to assess predictive performance of a TCR2HLA model on a particular dataset. 
+    For example, the file [sample_hla_x_towlerton.csv](https://www.dropbox.com/scl/fi/af8wlgyqo93y5du25tgsb/sample_hla_x_towlerton.csv?rlkey=ceanuev8vymt5spiq6t2y467t&st=o3sab0jd&dl=1)
+    provides genotypes derived from a high resolution next-generation sequencing genotyping method.
+    """
+    )
+    return
+
 
 @app.cell
 def _(mo):
     truth_file = mo.ui.file(
-        label="Truth File",
+        label="Optional ground truth genotypes .csv file",
         kind="area"
     )
     truth_file
@@ -49,6 +148,7 @@ def _(mo):
 def define_functions(mo):
     # Dependencies - Functions
     import io
+    import re
     import os
     import sys
     import pandas as pd
@@ -570,31 +670,41 @@ def define_functions(mo):
             S.toarray(), 
             columns = w_cols )
         return(df)
-    return HLApredict, io, np, os, pd, read_zip_to_dataframes, tab, tab1
+    
+    def map_allele2(allele):
+        # Define the sets of prefixes to categorize
+        categories = {
+            'A': 'A',
+            'B': 'B',
+            'C': 'C',
+            'DPA': 'DPA',
+            'DPB': 'DPB',
+            'DQA': 'DQA',
+            'DQB': 'DQB',
+            'DRB': 'DR'
+        }
+        
+        # Function to map each allele to its category
+        def get_category(allele):
+            # Check for DPAB and DQAB combinations using regex patterns
+            if re.match(r'DQA1_\d+__DQB1_\d+', allele):
+                return 'DQAB'
+            elif re.match(r'DPA1_\d+__DPB1_\d+', allele):
+                return 'DPAB'
+            elif re.match(r'DRB[345]+', allele):
+                return 'DRB345'
+            
+            # Check for individual allele types
+            for key in categories:
+                if allele.startswith(key):
+                    return categories[key]
+            
+            return None  # Return None if no category found
+    
+        return get_category(allele)
 
+    return HLApredict, io, np, os, pd, read_zip_to_dataframes, tab, tab1, map_allele2
 
-@app.cell
-def _(mo):
-    cnames_ui = mo.md("""
-    - {v_col}
-    - {cdr3_col}
-    - {templates_col}
-    """).batch(
-        v_col=mo.ui.text(
-            label="v_col:",
-            value="vMaxResolved"
-        ),
-        cdr3_col=mo.ui.text(
-            label="cdr3_col:",
-            value="aminoAcid"
-        ),
-        templates_col=mo.ui.text(
-            label="templates_col",
-            value="count (templates/reads)"
-        )
-    )
-    cnames_ui
-    return (cnames_ui,)
 
 
 @app.cell
@@ -609,12 +719,12 @@ def _(cnames_ui, mo, read_zip_to_dataframes, zip_upload):
     return (dfs,)
 
 
-@app.cell
-def _(mo):
-    model_name = "XSTUDY_ALL_FEATURE_L1_v4e"
-    model_folder = str(mo.notebook_location() / "public" / model_name)
-    calibration_name = "XSTUDY_ALL_FEATURE_L1_v4e_HS2"
-    return calibration_name, model_folder, model_name
+# @app.cell
+# def _(mo):
+#     model_name = "XSTUDY_ALL_FEATURE_L1_v4e"
+#     model_folder = str(mo.notebook_location() / "public" / model_name)
+#     calibration_name = "XSTUDY_ALL_FEATURE_L1_v4e_HS2"
+#     return calibration_name, model_folder, model_name
 
 
 @app.cell
@@ -693,6 +803,7 @@ def _(fp, h, io, pd, truth_file):
             pred=predictions['p'] > 0.5,
             group=predictions['binary'].apply(lambda s: s.split("_")[0])
         )
+        predictions_viz = predictions[predictions['group'].isin(['A','B','C','DQA','DQB','DQAB','DPAB','DR'])]
         print(f">>>> Scoring Predictions <<<<<{fp}")
         performance = h.score_predictions(probs=h.calibrated_prob, observations=truth.loc[h.calibrated_prob.index].astype('float64'))
         performance = performance.rename(columns={'i': 'binary'})
@@ -700,6 +811,7 @@ def _(fp, h, io, pd, truth_file):
 
         output_csvs["calibrated_probabilities"] = h.calibrated_prob #.to_csv(index=True)
         output_csvs["predictions"] = predictions #.to_csv(index=True)
+        #output_csvs["predictions_viz"] = predictions_viz #.to_csv(index=True)
         output_csvs["performance"] = performance #.to_csv(index=True)
 
     else:
@@ -710,7 +822,7 @@ def _(fp, h, io, pd, truth_file):
         predictions = predictions.rename(columns={'obs': 'pred'})  # no observations
         # Write the group for each prediction
         predictions = predictions.assign(
-            group=predictions['binary'].apply(lambda s: s.split("_")[0])
+            group=predictions['binary'].apply(lambda s: map_allele2(s))
         )
         output_csvs["predictions"] = predictions #.to_csv(index=True)
 
@@ -726,9 +838,9 @@ def _(mo, output_csvs):
     - {groups}
     """).batch(
         groups=mo.ui.multiselect(
-            label="Groups:",
+            label="Select Loci:",
             options=output_csvs["predictions"]["group"].unique(),
-            value=output_csvs["predictions"]["group"].unique()
+            value=['A','B','C','DRB1','DQA1','DQB1']
         )
     )
     plot_predictions_args
