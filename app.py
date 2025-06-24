@@ -664,12 +664,26 @@ def define_functions(mo):
     def load_weights_from_npz(
         weights_npz='XSTUDY_ALL_FEATURE_L1_v4.weights.npz', 
         weights_col='XSTUDY_ALL_FEATURE_L1_v4.columns.csv'):
-        S = load_npz(weights_npz)
-        w_cols = pd.read_csv(weights_col).iloc[:,0].to_list()
+        import requests
+        from io import BytesIO
+        from scipy.sparse import load_npz
+
+        # Download the .npz file from the URL
+        npz_response = requests.get(weights_npz)
+        npz_response.raise_for_status()
+        S = load_npz(BytesIO(npz_response.content))
+
+        # Download the columns CSV from the URL
+        col_response = requests.get(weights_col)
+        col_response.raise_for_status()
+        import pandas as pd
+        w_cols = pd.read_csv(BytesIO(col_response.content)).iloc[:, 0].to_list()
+
         df = pd.DataFrame(
-            S.toarray(), 
-            columns = w_cols )
-        return(df)
+            S.toarray(),
+            columns=w_cols
+        )
+        return df
     
     def map_allele2(allele):
         # Define the sets of prefixes to categorize
@@ -681,7 +695,7 @@ def define_functions(mo):
             'DPB': 'DPB',
             'DQA': 'DQA',
             'DQB': 'DQB',
-            'DRB': 'DR'
+            'DRB': 'DRB1'
         }
         
         # Function to map each allele to its category
@@ -840,7 +854,7 @@ def _(mo, output_csvs):
         groups=mo.ui.multiselect(
             label="Select Loci:",
             options=output_csvs["predictions"]["group"].unique(),
-            value=['A','B','C','DRB1','DQA1','DQB1']
+            value=['A','B','C','DRB1','DQA','DQB']
         )
     )
     plot_predictions_args
