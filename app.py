@@ -145,9 +145,11 @@ def _(mo):
     return (truth_file,)
 
 
-@app.cell(hide_code=True)
+@app.cell
 def define_functions(mo):
     # Dependencies - Functions
+    import requests
+    from io import BytesIO
     import io
     import re
     import os
@@ -244,7 +246,7 @@ def define_functions(mo):
                 title="Parsing Input Files",
                 remove_on_exit=True
             ):
-                if filename.endswith('.tsv') or filename.endswith('.csv'):
+                if (filename.endswith('.tsv') or filename.endswith('.csv')) and "__MACOSX" not in filename:
                     cnt = cnt + 1
                     print(filename)
                     with z.open(filename) as f:
@@ -515,8 +517,9 @@ def define_functions(mo):
         def load_fit(self, model_folder, model_name, use_npz = True):
             if use_npz:
                 df = load_weights_from_npz(
-                        weights_npz=os.path.join(model_folder, f'{model_name}.weights.npz'), #'XSTUDY_ALL_FEATURE_L1_v4.weights.npz', 
-                        weights_col=os.path.join(model_folder, f'{model_name}.columns.csv')) #'XSTUDY_ALL_FEATURE_L1_v4.columns.csv')
+                        weights_npz=os.path.join(model_folder, f'{model_name}.weights.npz'),
+                        weights_col=os.path.join(model_folder, f'{model_name}.columns.csv')
+                )
                 self.coefficients   = df
                 self.intercepts     = pd.read_csv(os.path.join(model_folder, f'{model_name}.intercepts.csv'), index_col = 0)
 
@@ -662,29 +665,31 @@ def define_functions(mo):
             self.calibrated_prob = calibrated_prob
             return calibrated_prob
 
-    def load_weights_from_npz(
-        weights_npz='XSTUDY_ALL_FEATURE_L1_v4.weights.npz', 
-        weights_col='XSTUDY_ALL_FEATURE_L1_v4.columns.csv'):
-        import requests
-        from io import BytesIO
-        from scipy.sparse import load_npz
+
+    def load_weights_from_npz(weights_npz: str, weights_col: str):
 
         # Download the .npz file from the URL
-        npz_response = requests.get(weights_npz)
-        npz_response.raise_for_status()
-        S = load_npz(BytesIO(npz_response.content))
+        if "micropip" in sys.modules:
+            npz_response = requests.get(weights_npz, stream=True)
+            npz_response.raise_for_status()
+            npz_content = npz_response.raw.read(decode_content=True)
+            S = load_npz(BytesIO(npz_content))
 
-        # Download the columns CSV from the URL
-        col_response = requests.get(weights_col)
-        col_response.raise_for_status()
-        import pandas as pd
-        w_cols = pd.read_csv(BytesIO(col_response.content)).iloc[:, 0].to_list()
+            # Download the columns CSV from the URL
+            col_response = requests.get(weights_col, stream=True)
+            col_response.raise_for_status()
+            col_content = col_response.raw.read(decode_content=True)
+            w_cols = pd.read_csv(BytesIO(col_content)).iloc[:, 0].to_list()
+        else:
+            S = load_npz(weights_npz)
+            w_cols = pd.read_csv(weights_col).iloc[:, 0].to_list()
 
         df = pd.DataFrame(
             S.toarray(),
             columns=w_cols
         )
         return df
+
 
     def map_allele2(allele):
         # Define the sets of prefixes to categorize
