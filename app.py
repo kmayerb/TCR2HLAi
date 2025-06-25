@@ -114,7 +114,7 @@ def _(mo):
 def upload_file(mo):
     # First step is for the user to upload a zip file
     zip_upload = mo.ui.file(
-        label="Upload .zip file containing reperotires",
+        label="Upload .zip file containing repertoires",
         kind="area"
     )
     zip_upload
