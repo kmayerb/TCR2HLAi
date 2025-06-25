@@ -13,7 +13,7 @@ def _():
 @app.cell
 def _(mo):
     mo.md(
-    """
+        """
     ## TCR2HLA 
 
     ![My Figure](public/XSTUDY_ALL_FEATURE_L1_v4e/20250217_Figure_1_ALT_editable_labels.png)
@@ -27,7 +27,6 @@ def _(mo):
     The file size of the full dataset [towlerton.zip](https://www.dropbox.com/scl/fi/6xp0kkiszphdfrhknw4o4/towlerton.zip?rlkey=1pxyce206624drcx42x9hb12a&st=yzfzo38h&dl=1)
     is too large to be uploaded tothe reactive Python webserver; however, a condensed format with only required columns [towlerton_mini.zip](https://www.dropbox.com/scl/fi/eav6uuq5mkhdwehesxm3q/towlerton_mini.zip?rlkey=q01gnpycgyrbxqcjmc9yjpegq&st=evggjjte&dl=1)
     permits upload of all 192 repertoires with an expected run time of 10 minutes. For faster performance, use the commandline tool that makes use of multiple cpus.
-
     """
     )
     return
@@ -37,13 +36,13 @@ def _(mo):
 def _(mo):
     cnames_ui = mo.md("""
     ### Repertoire Data Format
-                          
+
     Specify relevant columns based on repertoire data format.
 
     - {v_col}
     - {cdr3_col}
     - {templates_col}
-            
+
     """).batch(
         v_col=mo.ui.text(
             label="**TRBV gene name column** (v_col e.g., vMaxResolved, vGene, vb):",
@@ -67,12 +66,12 @@ def model_config_ui(mo):
     mnames_ui = mo.md("""
 
     ### Model Configuration
-    
+
     Select model and calibration.    
 
     - {model_name}
     - {calibration_name}  
-                                   
+
     """).batch(
         model_name=mo.ui.dropdown(
             label="Model name",
@@ -88,6 +87,7 @@ def model_config_ui(mo):
     mnames_ui
     return (mnames_ui,)
 
+
 @app.cell
 def model_params(mnames_ui, mo):
     model_name = mnames_ui.value['model_name']
@@ -101,10 +101,10 @@ def model_params(mnames_ui, mo):
 @app.cell
 def _(mo):
     mo.md(
-    """
+        """
     ### Input Repertoires
 
-    **Drag and drop a set of TCRb repertoires as a .zip file below to start the HLA prediction pipeline**. 
+    **Drag and drop a set of TCRb repertoires as a .zip file below to start the HLA prediction pipeline**.
     """
     )
     return
@@ -120,12 +120,13 @@ def upload_file(mo):
     zip_upload
     return (zip_upload,)
 
+
 @app.cell
 def _(mo):
     mo.md(
-    """
+        """
     #### Optional: Truth Values
-    
+
     For previously genotyped samples, a .csv file with genotype truth values can included to assess predictive performance of a TCR2HLA model on a particular dataset. 
     For example, the file [sample_hla_x_towlerton.csv](https://www.dropbox.com/scl/fi/af8wlgyqo93y5du25tgsb/sample_hla_x_towlerton.csv?rlkey=ceanuev8vymt5spiq6t2y467t&st=o3sab0jd&dl=1)
     provides genotypes derived from a high resolution next-generation sequencing genotyping method.
@@ -684,7 +685,7 @@ def define_functions(mo):
             columns=w_cols
         )
         return df
-    
+
     def map_allele2(allele):
         # Define the sets of prefixes to categorize
         categories = {
@@ -697,7 +698,7 @@ def define_functions(mo):
             'DQB': 'DQB',
             'DRB': 'DRB1'
         }
-        
+
         # Function to map each allele to its category
         def get_category(allele):
             # Check for DPAB and DQAB combinations using regex patterns
@@ -707,18 +708,27 @@ def define_functions(mo):
                 return 'DPAB'
             elif re.match(r'DRB[345]+', allele):
                 return 'DRB345'
-            
+
             # Check for individual allele types
             for key in categories:
                 if allele.startswith(key):
                     return categories[key]
-            
+
             return None  # Return None if no category found
-    
+
         return get_category(allele)
 
-    return HLApredict, io, np, os, pd, read_zip_to_dataframes, tab, tab1, map_allele2
-
+    return (
+        HLApredict,
+        io,
+        map_allele2,
+        np,
+        os,
+        pd,
+        read_zip_to_dataframes,
+        tab,
+        tab1,
+    )
 
 
 @app.cell
@@ -731,14 +741,6 @@ def _(cnames_ui, mo, read_zip_to_dataframes, zip_upload):
         **cnames_ui.value,
     )
     return (dfs,)
-
-
-# @app.cell
-# def _(mo):
-#     model_name = "XSTUDY_ALL_FEATURE_L1_v4e"
-#     model_folder = str(mo.notebook_location() / "public" / model_name)
-#     calibration_name = "XSTUDY_ALL_FEATURE_L1_v4e_HS2"
-#     return calibration_name, model_folder, model_name
 
 
 @app.cell
@@ -804,7 +806,7 @@ def load_model(
 
 
 @app.cell
-def _(fp, h, io, pd, truth_file):
+def _(fp, h, io, map_allele2, pd, truth_file):
     print(f">>>> Loading Truth File <<<<<{fp}")
 
     output_csvs = {}
