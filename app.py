@@ -544,7 +544,7 @@ def define_functions(mo):
                 c_response = requests.get(c_filename, stream=True)
                 c_response.raise_for_status()
                 c_content = c_response.raw.read(decode_content=True)
-                self.intercepts = pd.read_csv(BytesIO(c_content), sep=",", index_col = 0)
+                self.calibrations = pd.read_csv(BytesIO(c_content), sep=",", index_col = 0)
             else:
                 self.calibrations = pd.read_csv(os.path.join(model_folder, f'{model_name}.calibrations.csv'), index_col = 0)#.to_dict()
 
