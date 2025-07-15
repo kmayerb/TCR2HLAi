@@ -6,6 +6,6 @@ To help, we built a serverless web app [TCR2HLAi](https://kmayerb.github.io/TCR2
 
 To facilitate ease of use, no installation or login is required. [TCR2HLAi](https://kmayerb.github.io/TCR2HLAi/).
 
-For the full Python package—enabling parallelization across multiple CPUs and discovery of new HLA-associated TCRs and TCR metaclonotypes—please visit [github.com/kmayerbl/TCR2HLA](https://github.com/kmayerbl/TCR2HLA).
+For the full Python package—enabling parallelization across multiple CPUs and discovery of new HLA-associated TCRs and TCR metaclonotypes—please visit [github.com/kmayerb/TCR2HLA](https://github.com/kmayerb/TCR2HLA).
 
 [Marimo](https://marimo.io) is a reactive Python notebook framework for interactive applications.
