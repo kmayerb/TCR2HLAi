@@ -26,7 +26,7 @@ def _(mo):
 
     To facilitate ease of use, no installation or login is required.
 
-    For the full Python package—enabling parallelization across multiple CPUs and discovery of new HLA-associated TCRs and TCR metaclonotypes—please visit [github.com/kmayerbl/TCR2HLA](https://github.com/kmayerbl/TCR2HLA).
+    For the full Python package—enabling parallelization across multiple CPUs and discovery of new HLA-associated TCRs and TCR metaclonotypes—please visit [github.com/kmayerb/TCR2HLA](https://github.com/kmayerb/TCR2HLA).
 
     ### Demonstration
 
