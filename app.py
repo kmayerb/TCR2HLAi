@@ -752,8 +752,13 @@ def _(cnames_ui, mo, read_zip_to_dataframes, zip_upload):
 def _(model_folder, model_name, os, pd):
     # Read in the model data
     filename = os.path.join(model_folder, f"{model_name}.query.csv")
-    with z.open(filename) as f:
-        Q = pd.read_csv(BytesIO(f.read()), sep=",")
+    if "micropip" in sys.modules:
+        Q_response = requests.get(weights_npz, stream=True)
+        Q_response.raise_for_status()
+        Q_content = Q_response.raw.read(decode_content=True)
+        Q = pd.read_csv(BytesIO(Q_content), sep=",")
+    else:
+        Q = pd.read_csv(filename, sep=",")
     #Q = pd.read_csv(os.path.join(model_folder, f"{model_name}.query.csv"))
     Q1 = Q[Q['search'] == "edit1"]
     Q0 = Q[Q['search'] == "edit0"]
