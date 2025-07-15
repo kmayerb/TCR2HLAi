@@ -20,6 +20,14 @@ def _(mo):
 
     **TCR2HLA** estimates calibrated HLA genotype probabilites from TCRbeta repertoires. 
 
+    ### Want to try TCR2HLA?
+
+    To help, we built a serverless web app with Marimo that runs our pre-trained TCR2HLA models directly in your browser. Simply drag and drop a `.zip` file of human TCRβ repertoires to estimate common HLA genotype probabilities—your data never leaves your device. 
+
+    To facilitate ease of use, no installation or login is required.
+
+    For the full Python package—enabling parallelization across multiple CPUs and discovery of new HLA-associated TCRs and TCR metaclonotypes—please visit [github.com/kmayerbl/TCR2HLA](https://github.com/kmayerbl/TCR2HLA).
+
     ### Demonstration
 
     To get started, download the [towlerton25.zip](https://www.dropbox.com/scl/fi/72jnhawjj0rd2nuvxk7h8/towlerton25.zip?rlkey=enqpzs32wjzuvp0a5rlox3daq&st=0ehfrfbw&dl=1) 
@@ -844,7 +852,7 @@ def _(fp, h, io, map_allele2, pd, truth_file):
         # Write the group for each prediction
         predictions = predictions.assign(
             pred=predictions['p'] > 0.5,
-            group=predictions['binary'].apply(lambda s: s.split("_")[0])
+            group=predictions['binary'].apply(lambda s: map_allele2(s))
         )
         predictions_viz = predictions[predictions['group'].isin(['A','B','C','DQA','DQB','DQAB','DPAB','DR'])]
         print(f">>>> Scoring Predictions <<<<<{fp}")
@@ -862,7 +870,8 @@ def _(fp, h, io, map_allele2, pd, truth_file):
 
         output_csvs["calibrated_probabilities"] = h.calibrated_prob #.to_csv(index=True)
         predictions = h.output_probs_and_obs(probs=h.calibrated_prob, observations=(h.calibrated_prob > 0.5).astype('float64'))
-        predictions = predictions.rename(columns={'obs': 'pred'})  # no observations
+        predictions = predictions.rename(columns={'obs': 'pred'})  # no observations, just predictions
+        
         # Write the group for each prediction
         predictions = predictions.assign(
             group=predictions['binary'].apply(lambda s: map_allele2(s))
