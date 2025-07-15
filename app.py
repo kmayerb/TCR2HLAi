@@ -521,7 +521,14 @@ def define_functions(mo):
                         weights_col=os.path.join(model_folder, f'{model_name}.columns.csv')
                 )
                 self.coefficients   = df
-                self.intercepts     = pd.read_csv(os.path.join(model_folder, f'{model_name}.intercepts.csv'), index_col = 0)
+                if "micropip" in sys.modules:
+                    i_filename = os.path.join(model_folder, f'{model_name}.intercepts.csv')
+                    i_response = requests.get(i_filename, stream=True)
+                    i_response.raise_for_status()
+                    i_content = i_response.raw.read(decode_content=True)
+                    self.intercepts = pd.read_csv(BytesIO(i_content), sep=",", index_col = 0)
+                else:
+                    self.intercepts = pd.read_csv(os.path.join(model_folder, f'{model_name}.intercepts.csv'), index_col = 0)
 
             else:
                 self.coefficients   = pd.read_csv(os.path.join(model_folder, f'{model_name}.weights.csv')   , index_col = 0)
@@ -532,7 +539,14 @@ def define_functions(mo):
             self.Y = pd.read_csv(os.path.join(model_folder, f'{model_name}.observations.csv'), index_col = 0)
 
         def load_calibrations(self, model_folder, model_name):
-            self.calibrations = pd.read_csv(os.path.join(model_folder, f'{model_name}.calibrations.csv'), index_col = 0)#.to_dict()
+            if "micropip" in sys.modules:
+                c_filename = os.path.join(model_folder, f'{model_name}.calibrations.csv')
+                c_response = requests.get(c_filename, stream=True)
+                c_response.raise_for_status()
+                c_content = c_response.raw.read(decode_content=True)
+                self.intercepts = pd.read_csv(BytesIO(c_content), sep=",", index_col = 0)
+            else:
+                self.calibrations = pd.read_csv(os.path.join(model_folder, f'{model_name}.calibrations.csv'), index_col = 0)#.to_dict()
 
         def save_calibration(self, model_folder, model_name):
             pd.DataFrame(self.calibrations).to_csv(os.path.join(model_folder,f"{model_name}.calibrations.csv"))
