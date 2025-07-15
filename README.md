@@ -1,3 +1,11 @@
 # TCR2HLAi
 
-We built a web app using our pre-trained TCR2HLA models with [Marimo](https://marimo.io), a reactive Python notebook framework for interactive applications. Drag and drop your human TCR𝛃 repertoire repertoires as a single .zip file to estimate the probability of common HLA genotypes on a serverless web application, where your data stays on your web browser! 
+## Want to try TCR2HLA?
+
+To help, we built a serverless web app [TCR2HLAi](https://kmayerb.github.io/TCR2HLAi/) with Marimo that runs our pre-trained TCR2HLA models directly in your browser. Simply drag and drop a `.zip` file of human TCRβ repertoires to estimate common HLA genotype probabilities—your data never leaves your device. 
+
+To facilitate ease of use, no installation or login is required. [TCR2HLAi](https://kmayerb.github.io/TCR2HLAi/).
+
+For the full Python package—enabling parallelization across multiple CPUs and discovery of new HLA-associated TCRs and TCR metaclonotypes—please visit [github.com/kmayerbl/TCR2HLA](https://github.com/kmayerbl/TCR2HLA).
+
+[Marimo](https://marimo.io) is a reactive Python notebook framework for interactive applications.
