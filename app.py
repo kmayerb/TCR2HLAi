@@ -751,7 +751,10 @@ def _(cnames_ui, mo, read_zip_to_dataframes, zip_upload):
 @app.cell
 def _(model_folder, model_name, os, pd):
     # Read in the model data
-    Q = pd.read_csv(os.path.join(model_folder, f"{model_name}.query.csv"))
+    filename = os.path.join(model_folder, f"{model_name}.query.csv")
+    with z.open(filename) as f:
+        Q = pd.read_csv(BytesIO(f.read()), sep=",")
+    #Q = pd.read_csv(os.path.join(model_folder, f"{model_name}.query.csv"))
     Q1 = Q[Q['search'] == "edit1"]
     Q0 = Q[Q['search'] == "edit0"]
     return Q, Q0, Q1
