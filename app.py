@@ -180,7 +180,8 @@ def define_functions(mo):
         df,
         v_col = 'vMaxResolved',
         cdr3_col = 'aminoAcid',
-        templates_col = 'count (templates/reads)'
+        templates_col = 'count (templates/reads)',
+        min_value = 2E-6,
     ):
         """
         Retain only the specified columns in the DataFrame and perform filtering/processing.
@@ -210,6 +211,8 @@ def define_functions(mo):
         dfx['V'] = dfx['V'].apply(lambda x : f"{x[0]}0{x[1]}" if len(x) == 2 else x)
         dfx['vfamcdr3'] = dfx['V'] + dfx[cdr3_col]
         dfx['templates'] = dfx[templates_col]
+        dfx['productive_frequency'] = dfx['templates'] / dfx['templates'].sum()
+        dfx = dfx[dfx['productive_frequency'] > min_value].reset_index(drop = True)
         return dfx[['vfamcdr3', 'templates']]
 
 
