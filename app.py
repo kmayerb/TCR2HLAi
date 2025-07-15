@@ -753,7 +753,7 @@ def _(model_folder, model_name, os, pd):
     # Read in the model data
     filename = os.path.join(model_folder, f"{model_name}.query.csv")
     if "micropip" in sys.modules:
-        Q_response = requests.get(weights_npz, stream=True)
+        Q_response = requests.get(filename, stream=True)
         Q_response.raise_for_status()
         Q_content = Q_response.raw.read(decode_content=True)
         Q = pd.read_csv(BytesIO(Q_content), sep=",")
