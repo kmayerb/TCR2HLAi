@@ -765,11 +765,15 @@ def define_functions(mo):
 def _(cnames_ui, mo, read_zip_to_dataframes, zip_upload):
     # Stop all execution if no file is uploaded
     mo.stop(len(zip_upload.value) == 0)
-
-    dfs = read_zip_to_dataframes(
-        zip_upload.value[0],
-        **cnames_ui.value,
-    )
+    parse_log = f"#### Note: Parsed repertoire data successfully from zipfile {zip_upload.value[0].name}"
+    try:
+        dfs = read_zip_to_dataframes(
+            zip_upload.value[0],
+            **cnames_ui.value,
+        )
+    except Exception as e:
+        parse_log = f'<span style="color:red">Error parsing from {zip_upload.value[0].name}" -- (Reconfirm column names in Repertoire Data Format section) -- ERROR:<br> {str(e)}</span>'
+    mo.md(parse_log)
     return (dfs,)
 
 
@@ -848,7 +852,7 @@ def _(fp, h, io, map_allele2, pd, truth_file, mo):
     print(f">>>> Loading Truth File <<<<<{fp}")
 
     output_csvs = {}
-
+    truth_log = f''
     if len(truth_file.value) > 0:
         try:
             filename_truth = truth_file.value[0].name
@@ -871,10 +875,10 @@ def _(fp, h, io, map_allele2, pd, truth_file, mo):
             output_csvs["predictions"] = predictions #.to_csv(index=True)
             #output_csvs["predictions_viz"] = predictions_viz #.to_csv(index=True)
             output_csvs["performance"] = performance #.to_csv(index=True)
+            truth_log = f'#### Note: Truth file: { truth_file.value[0].name} loaded sucessfully, performance summary available below.'
         except Exception as e:
-            print(f"Error loading or processing truth file: {e}")
-            truth_log = f"Error loading or processing truth file: {str(e)}"
-            mo.md(truth_log)
+            truth_log = f'<span style="color:red";font-size: 1.3em>Error loading or processing truth file:<br> {str(e)}</span>'
+            
 
     else:
         print(f">>>> Writing Outputs <<<<<{fp}")
@@ -888,7 +892,8 @@ def _(fp, h, io, map_allele2, pd, truth_file, mo):
             group=predictions['binary'].apply(lambda s: map_allele2(s))
         )
         output_csvs["predictions"] = predictions #.to_csv(index=True)
-
+        truth_log = '#### Note: No truth file provided. Calibrated probability estimates and predictions provided without performance summary'
+    mo.md(truth_log)
     return (output_csvs,)
 
 
