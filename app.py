@@ -851,8 +851,8 @@ def _(fp, h, io, map_allele2, pd, truth_file, mo):
 
     if len(truth_file.value) > 0:
         try:
-            filename = truth_file.value[0].name
-            sep = "\t" if filename.endswith(".tsv") else ","
+            filename_truth = truth_file.value[0].name
+            sep = "\t" if filename_truth.endswith(".tsv") else ","
             truth = pd.read_csv(io.BytesIO(truth_file.value[0].contents), index_col=0, sep=sep)
             #truth = pd.read_csv(io.BytesIO(truth_file.value[0].contents), index_col=0)
             predictions = h.output_probs_and_obs(probs=h.calibrated_prob, observations=truth.loc[h.calibrated_prob.index])
