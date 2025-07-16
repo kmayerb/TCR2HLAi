@@ -856,7 +856,7 @@ def _(fp, h, io, map_allele2, pd, truth_file, mo):
             truth = pd.read_csv(io.BytesIO(truth_file.value[0].contents), index_col=0, sep=sep)
             #truth = pd.read_csv(io.BytesIO(truth_file.value[0].contents), index_col=0)
             predictions = h.output_probs_and_obs(probs=h.calibrated_prob, observations=truth.loc[h.calibrated_prob.index])
-            # Write the group for each prediction
+            # Write the group for each pre  diction
             predictions = predictions.assign(
                 pred=predictions['p'] > 0.5,
                 group=predictions['binary'].apply(lambda s: map_allele2(s))
@@ -874,7 +874,7 @@ def _(fp, h, io, map_allele2, pd, truth_file, mo):
         except Exception as e:
             print(f"Error loading or processing truth file: {e}")
             truth_log = f"Error loading or processing truth file: {str(e)}"
-        mo.md(truth_log)
+            mo.md(truth_log)
 
     else:
         print(f">>>> Writing Outputs <<<<<{fp}")
