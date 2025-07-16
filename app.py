@@ -844,29 +844,37 @@ def load_model(
 
 
 @app.cell
-def _(fp, h, io, map_allele2, pd, truth_file):
+def _(fp, h, io, map_allele2, pd, truth_file, mo):
     print(f">>>> Loading Truth File <<<<<{fp}")
 
     output_csvs = {}
 
     if len(truth_file.value) > 0:
-        truth = pd.read_csv(io.BytesIO(truth_file.value[0].contents), index_col=0)
-        predictions = h.output_probs_and_obs(probs=h.calibrated_prob, observations=truth.loc[h.calibrated_prob.index])
-        # Write the group for each prediction
-        predictions = predictions.assign(
-            pred=predictions['p'] > 0.5,
-            group=predictions['binary'].apply(lambda s: map_allele2(s))
-        )
-        predictions_viz = predictions[predictions['group'].isin(['A','B','C','DQA','DQB','DQAB','DPAB','DR'])]
-        print(f">>>> Scoring Predictions <<<<<{fp}")
-        performance = h.score_predictions(probs=h.calibrated_prob, observations=truth.loc[h.calibrated_prob.index].astype('float64'))
-        performance = performance.rename(columns={'i': 'binary'})
-        print(f">>>> Writing Outputs <<<<<{fp}")
+        try:
+            filename = truth_file.value[0].name
+            sep = "\t" if filename.endswith(".tsv") else ","
+            truth = pd.read_csv(io.BytesIO(truth_file.value[0].contents), index_col=0, sep=sep)
+            #truth = pd.read_csv(io.BytesIO(truth_file.value[0].contents), index_col=0)
+            predictions = h.output_probs_and_obs(probs=h.calibrated_prob, observations=truth.loc[h.calibrated_prob.index])
+            # Write the group for each prediction
+            predictions = predictions.assign(
+                pred=predictions['p'] > 0.5,
+                group=predictions['binary'].apply(lambda s: map_allele2(s))
+            )
+            predictions_viz = predictions[predictions['group'].isin(['A','B','C','DQA','DQB','DQAB','DPAB','DR'])]
+            print(f">>>> Scoring Predictions <<<<<{fp}")
+            performance = h.score_predictions(probs=h.calibrated_prob, observations=truth.loc[h.calibrated_prob.index].astype('float64'))
+            performance = performance.rename(columns={'i': 'binary'})
+            print(f">>>> Writing Outputs <<<<<{fp}")
 
-        output_csvs["calibrated_probabilities"] = h.calibrated_prob #.to_csv(index=True)
-        output_csvs["predictions"] = predictions #.to_csv(index=True)
-        #output_csvs["predictions_viz"] = predictions_viz #.to_csv(index=True)
-        output_csvs["performance"] = performance #.to_csv(index=True)
+            output_csvs["calibrated_probabilities"] = h.calibrated_prob #.to_csv(index=True)
+            output_csvs["predictions"] = predictions #.to_csv(index=True)
+            #output_csvs["predictions_viz"] = predictions_viz #.to_csv(index=True)
+            output_csvs["performance"] = performance #.to_csv(index=True)
+        except Exception as e:
+            print(f"Error loading or processing truth file: {e}")
+            truth_log = f"Error loading or processing truth file: {str(e)}"
+        mo.md(truth_log)
 
     else:
         print(f">>>> Writing Outputs <<<<<{fp}")
